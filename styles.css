@@ -1,0 +1,256 @@
+:root {
+  color-scheme: dark;
+  --bg: #06070a;
+  --panel: rgba(11, 14, 18, 0.68);
+  --panel-strong: rgba(16, 20, 25, 0.86);
+  --line: rgba(255, 255, 255, 0.14);
+  --text: #f4f2ed;
+  --muted: #a8b0b8;
+  --accent: #f5c16c;
+  --accent-2: #75d3ff;
+  --danger: #ff6f61;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.stage {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(117, 211, 255, 0.14), transparent 28rem),
+    linear-gradient(135deg, #07090d 0%, #17100e 46%, #050609 100%);
+}
+
+.camera-feed,
+.scene-canvas,
+.gesture-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.camera-feed {
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.stage.camera-on .camera-feed {
+  opacity: 0.62;
+}
+
+.scene-canvas {
+  z-index: 1;
+}
+
+.gesture-canvas {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.top-bar,
+.hud,
+.gesture-strip {
+  position: absolute;
+  z-index: 3;
+}
+
+.top-bar {
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(42px, 8vw, 116px);
+  line-height: 0.88;
+  font-weight: 800;
+}
+
+.icon-button,
+.tool-button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.icon-button:hover,
+.tool-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 193, 108, 0.62);
+}
+
+.icon-button.primary {
+  background: rgba(245, 193, 108, 0.16);
+}
+
+.button-icon {
+  color: var(--accent);
+}
+
+.hud {
+  display: grid;
+  gap: 8px;
+}
+
+.hud.left {
+  left: 24px;
+  bottom: 96px;
+  width: min(260px, calc(100vw - 48px));
+}
+
+.hud.right {
+  right: 24px;
+  top: 116px;
+  width: 88px;
+}
+
+.readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+}
+
+.readout span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.readout strong {
+  font-size: 15px;
+}
+
+.tool-button {
+  min-height: 40px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.tool-button.active {
+  border-color: rgba(245, 193, 108, 0.72);
+  background: rgba(245, 193, 108, 0.18);
+}
+
+.gesture-strip {
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.gesture-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  padding: 0 13px;
+  color: var(--muted);
+  font-size: 13px;
+  backdrop-filter: blur(14px);
+}
+
+.gesture-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 16px var(--danger);
+}
+
+.gesture-dot.active {
+  background: #57e389;
+  box-shadow: 0 0 16px #57e389;
+}
+
+@media (max-width: 720px) {
+  .top-bar {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .hud.left {
+    left: 16px;
+    bottom: 86px;
+  }
+
+  .hud.right {
+    right: 16px;
+    top: auto;
+    bottom: 144px;
+    width: auto;
+    grid-template-columns: repeat(3, minmax(64px, 1fr));
+  }
+
+  .gesture-strip {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}

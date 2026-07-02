@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AR Saturn Gesture Lab</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage" aria-label="AR 手势交互土星模型">
+        <video id="cameraFeed" class="camera-feed" autoplay playsinline muted></video>
+        <canvas id="sceneCanvas" class="scene-canvas"></canvas>
+        <canvas id="gestureCanvas" class="gesture-canvas"></canvas>
+
+        <div class="top-bar">
+          <div>
+            <p class="eyebrow">AR Gesture Model</p>
+            <h1>Saturn</h1>
+          </div>
+          <button id="cameraButton" class="icon-button primary" type="button" aria-label="开启 AR 摄像头">
+            <span class="button-icon">◉</span>
+            <span id="cameraButtonLabel">开启 AR</span>
+          </button>
+        </div>
+
+        <div class="hud left">
+          <div class="readout">
+            <span>模式</span>
+            <strong id="modeLabel">待机</strong>
+          </div>
+          <div class="readout">
+            <span>缩放</span>
+            <strong id="scaleLabel">1.00x</strong>
+          </div>
+          <div class="readout">
+            <span>倾角</span>
+            <strong id="tiltLabel">26.7°</strong>
+          </div>
+        </div>
+
+        <div class="hud right">
+          <button class="tool-button active" type="button" data-preset="natural">自然</button>
+          <button class="tool-button" type="button" data-preset="infrared">红外</button>
+          <button class="tool-button" type="button" data-preset="eclipse">食影</button>
+        </div>
+
+        <div class="gesture-strip" aria-label="手势状态">
+          <div class="gesture-card">
+            <span class="gesture-dot" id="trackingDot"></span>
+            <span id="trackingLabel">等待摄像头</span>
+          </div>
+          <div class="gesture-card">单手移动：旋转</div>
+          <div class="gesture-card">双指捏合：缩放</div>
+          <div class="gesture-card">双手高度差：倾斜</div>
+        </div>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
