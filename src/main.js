@@ -28,6 +28,7 @@ const state = {
   targetScale: 1,
   targetTilt: THREE.MathUtils.degToRad(26.7),
   detected: false,
+  mirroredCamera: true,
   mode: "待机",
   preset: "natural",
 };
@@ -243,6 +244,7 @@ async function startCamera() {
     trackingLabel.textContent = "请求摄像头";
     const stream = await requestCameraStream();
     video.srcObject = stream;
+    setCameraMirror(stream);
     await video.play();
     stage.classList.add("camera-on");
     trackingLabel.textContent = "加载手势模型";
@@ -263,7 +265,7 @@ async function requestCameraStream() {
   const constraints = [
     {
       video: {
-        facingMode: { ideal: "environment" },
+        facingMode: { ideal: "user" },
         width: { ideal: 1280 },
         height: { ideal: 720 },
       },
@@ -271,6 +273,14 @@ async function requestCameraStream() {
     },
     {
       video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    },
+    {
+      video: {
+        facingMode: { ideal: "environment" },
         width: { ideal: 1280 },
         height: { ideal: 720 },
       },
@@ -291,6 +301,13 @@ async function requestCameraStream() {
     }
   }
   throw lastError;
+}
+
+function setCameraMirror(stream) {
+  const [track] = stream.getVideoTracks();
+  const settings = track?.getSettings?.() ?? {};
+  state.mirroredCamera = settings.facingMode !== "environment";
+  video.classList.toggle("mirrored", state.mirroredCamera);
 }
 
 function getCameraErrorMessage(error) {
@@ -366,7 +383,8 @@ function applyGestureResult(hands) {
 
   const primary = hands[0];
   const palm = midpoint(primary[0], primary[9]);
-  state.targetRotationY = THREE.MathUtils.mapLinear(palm.x, 0.18, 0.82, 1.15, -1.15);
+  const palmX = state.mirroredCamera ? 1 - palm.x : palm.x;
+  state.targetRotationY = THREE.MathUtils.mapLinear(palmX, 0.18, 0.82, 1.15, -1.15);
   state.targetRotationX = THREE.MathUtils.mapLinear(palm.y, 0.18, 0.82, -0.42, 0.42);
 
   const pinch = distance(primary[4], primary[8]);
@@ -423,7 +441,7 @@ function drawHand(points) {
   chains.forEach((chain) => {
     gestureContext.beginPath();
     chain.forEach((index, i) => {
-      const x = (1 - points[index].x) * width;
+      const x = normalizeGestureX(points[index].x) * width;
       const y = points[index].y * height;
       if (i === 0) gestureContext.moveTo(x, y);
       else gestureContext.lineTo(x, y);
@@ -434,9 +452,13 @@ function drawHand(points) {
   points.forEach((point, index) => {
     const radius = index === 4 || index === 8 ? 5 : 3;
     gestureContext.beginPath();
-    gestureContext.arc((1 - point.x) * width, point.y * height, radius, 0, Math.PI * 2);
+    gestureContext.arc(normalizeGestureX(point.x) * width, point.y * height, radius, 0, Math.PI * 2);
     gestureContext.fill();
   });
+}
+
+function normalizeGestureX(x) {
+  return state.mirroredCamera ? 1 - x : x;
 }
 
 function animate() {

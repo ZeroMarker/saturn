@@ -55,9 +55,12 @@ button {
 
 .camera-feed {
   object-fit: cover;
-  transform: scaleX(-1);
   opacity: 0;
   transition: opacity 240ms ease;
+}
+
+.camera-feed.mirrored {
+  transform: scaleX(-1);
 }
 
 .stage.camera-on .camera-feed {
