@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "lint": "node --check src/main.js"
+    "lint": "node --check src/main.js && node --check src/procedural.js && node --check vite.config.js"
   },
   "dependencies": {
     "three": "^0.165.0"

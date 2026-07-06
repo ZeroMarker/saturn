@@ -26,11 +26,11 @@
 
 - [x] Improve Saturn ring detail.
   - Acceptance: rings show stronger banding, transparency variation, and a visible Cassini division.
-- [ ] Add a soft planet shadow across the rings.
+- [x] Add a soft planet shadow across the rings.
   - Acceptance: ring depth reads clearly while preserving transparency.
 - [x] Differentiate display presets.
   - Acceptance: natural, infrared, and eclipse modes each have visibly distinct lighting and color treatment.
-- [ ] Tune starfield density and depth.
+- [x] Tune starfield density and depth.
   - Acceptance: background supports the planet without distracting from interaction.
 
 ## Phase 4: Engineering
@@ -41,6 +41,7 @@
   - Acceptance: Three.js is installed through npm and imported from the bundled app.
 - [ ] Split `src/main.js` into focused modules.
   - Acceptance: rendering, camera lifecycle, gesture handling, and UI state are separated.
+  - Progress: procedural texture, shadow, and starfield generation moved to `src/procedural.js`.
 - [x] Add formatting and linting.
   - Acceptance: `npm run lint` or equivalent catches basic JavaScript issues.
 
