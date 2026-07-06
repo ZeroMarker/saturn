@@ -1,5 +1,12 @@
 # AR Saturn Gesture Lab Todo
 
+## Current Status
+
+- Live site: `https://zeromarker.github.io/saturn/`
+- Deployment: GitHub Pages through `.github/workflows/deploy.yml`
+- Build stack: Vite, npm-managed Three.js, runtime MediaPipe Tasks Vision CDN
+- Remaining primary work: finish splitting `src/main.js` into focused modules.
+
 ## Phase 1: Stability
 
 - [x] Pause hand tracking when the page is hidden.
@@ -42,6 +49,11 @@
 - [ ] Split `src/main.js` into focused modules.
   - Acceptance: rendering, camera lifecycle, gesture handling, and UI state are separated.
   - Progress: procedural texture, shadow, and starfield generation moved to `src/procedural.js`.
+  - Suggested split:
+    - `src/scene.js`: renderer, scene, camera, lights, Saturn meshes, animation loop
+    - `src/camera.js`: camera stream lifecycle and track interruption handling
+    - `src/gestures.js`: MediaPipe loading, detection loop, landmark mapping
+    - `src/ui.js`: HUD updates, controls, preset state, reset state
 - [x] Add formatting and linting.
   - Acceptance: `npm run lint` or equivalent catches basic JavaScript issues.
 
@@ -56,8 +68,6 @@
 
 ## Suggested Execution Order
 
-1. Finish Phase 1 to prevent resource leaks and broken camera states.
-2. Do Phase 4 before larger feature additions so code stays easy to change.
-3. Add Phase 2 interaction improvements.
-4. Polish Phase 3 visuals.
-5. Finish Phase 5 before sharing publicly.
+1. Finish Phase 4 module split.
+2. Add browser-level visual smoke checks if Playwright or Chromium becomes available.
+3. Consider replacing runtime MediaPipe CDN with package-managed assets if offline or stricter supply-chain control becomes important.
