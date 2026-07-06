@@ -31,6 +31,11 @@ button {
   font: inherit;
 }
 
+button:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -69,6 +74,7 @@ button {
 
 .scene-canvas {
   z-index: 1;
+  touch-action: none;
 }
 
 .gesture-canvas {
@@ -91,6 +97,14 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .eyebrow {
@@ -134,6 +148,12 @@ h1 {
 .tool-button:hover {
   transform: translateY(-1px);
   border-color: rgba(245, 193, 108, 0.62);
+}
+
+.icon-button:focus-visible,
+.tool-button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
 }
 
 .icon-button.primary {
@@ -232,15 +252,30 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  h1 {
+    font-size: clamp(40px, 16vw, 76px);
+  }
+
+  .icon-button {
+    min-width: 108px;
+    justify-content: center;
+  }
+
   .top-bar {
     top: 16px;
     left: 16px;
     right: 16px;
+    gap: 12px;
+  }
+
+  .top-actions {
+    max-width: 124px;
   }
 
   .hud.left {
     left: 16px;
-    bottom: 86px;
+    bottom: 88px;
+    width: min(230px, calc(100vw - 32px));
   }
 
   .hud.right {
@@ -249,6 +284,10 @@ h1 {
     bottom: 144px;
     width: auto;
     grid-template-columns: repeat(3, minmax(64px, 1fr));
+  }
+
+  .tool-button {
+    padding: 0 10px;
   }
 
   .gesture-strip {

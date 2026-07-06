@@ -3,6 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="一个使用摄像头手势控制 Three.js 土星模型的静态 AR 实验。"
+    />
+    <meta name="theme-color" content="#06070a" />
+    <meta property="og:title" content="AR Saturn Gesture Lab" />
+    <meta property="og:description" content="用摄像头手势旋转、缩放和倾斜 Three.js 土星模型。" />
+    <meta property="og:type" content="website" />
     <title>AR Saturn Gesture Lab</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -18,10 +26,22 @@
             <p class="eyebrow">AR Gesture Model</p>
             <h1>Saturn</h1>
           </div>
-          <button id="cameraButton" class="icon-button primary" type="button" aria-label="开启 AR 摄像头">
-            <span class="button-icon">◉</span>
-            <span id="cameraButtonLabel">开启 AR</span>
-          </button>
+          <div class="top-actions">
+            <button
+              id="cameraButton"
+              class="icon-button primary"
+              type="button"
+              aria-label="开启 AR 摄像头"
+              aria-pressed="false"
+            >
+              <span class="button-icon">◉</span>
+              <span id="cameraButtonLabel">开启 AR</span>
+            </button>
+            <button id="resetButton" class="icon-button" type="button" aria-label="重置视角">
+              <span class="button-icon">↺</span>
+              <span>重置</span>
+            </button>
+          </div>
         </div>
 
         <div class="hud left">
@@ -39,10 +59,10 @@
           </div>
         </div>
 
-        <div class="hud right">
-          <button class="tool-button active" type="button" data-preset="natural">自然</button>
-          <button class="tool-button" type="button" data-preset="infrared">红外</button>
-          <button class="tool-button" type="button" data-preset="eclipse">食影</button>
+        <div class="hud right" aria-label="显示预设">
+          <button class="tool-button active" type="button" data-preset="natural" aria-pressed="true">自然</button>
+          <button class="tool-button" type="button" data-preset="infrared" aria-pressed="false">红外</button>
+          <button class="tool-button" type="button" data-preset="eclipse" aria-pressed="false">食影</button>
         </div>
 
         <div class="gesture-strip" aria-label="手势状态">
@@ -57,13 +77,6 @@
       </section>
     </main>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
-        }
-      }
-    </script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

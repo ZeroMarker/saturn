@@ -4,6 +4,7 @@ const video = document.querySelector("#cameraFeed");
 const stage = document.querySelector(".stage");
 const cameraButton = document.querySelector("#cameraButton");
 const cameraButtonLabel = document.querySelector("#cameraButtonLabel");
+const resetButton = document.querySelector("#resetButton");
 const gestureCanvas = document.querySelector("#gestureCanvas");
 const sceneCanvas = document.querySelector("#sceneCanvas");
 const modeLabel = document.querySelector("#modeLabel");
@@ -22,11 +23,33 @@ const pointer = {
   lastY: 0,
 };
 
+const cameraSession = {
+  stream: null,
+  handLandmarker: null,
+  detectAnimationId: 0,
+  lastVideoTime: -1,
+  starting: false,
+  shouldResumeOnVisible: false,
+};
+
+const DEFAULT_VIEW = {
+  rotationY: 0.45,
+  rotationX: -0.12,
+  scale: 1,
+  tilt: THREE.MathUtils.degToRad(26.7),
+};
+
+const LIMITS = {
+  rotationX: [-0.8, 0.8],
+  scale: [0.68, 1.7],
+  tilt: [THREE.MathUtils.degToRad(-18), THREE.MathUtils.degToRad(72)],
+};
+
 const state = {
-  targetRotationY: 0.45,
-  targetRotationX: -0.12,
-  targetScale: 1,
-  targetTilt: THREE.MathUtils.degToRad(26.7),
+  targetRotationY: DEFAULT_VIEW.rotationY,
+  targetRotationX: DEFAULT_VIEW.rotationX,
+  targetScale: DEFAULT_VIEW.scale,
+  targetTilt: DEFAULT_VIEW.tilt,
   detected: false,
   mirroredCamera: true,
   mode: "待机",
@@ -110,6 +133,7 @@ function createSaturnTexture() {
     "#f2d9a7",
     "#b98955",
   ];
+  const random = createSeededRandom(1209);
 
   for (let y = 0; y < canvas.height; y += 1) {
     const band = bands[Math.floor((y / canvas.height) * bands.length)];
@@ -119,8 +143,8 @@ function createSaturnTexture() {
 
   ctx.globalAlpha = 0.18;
   for (let i = 0; i < 220; i += 1) {
-    const y = Math.random() * canvas.height;
-    const h = 1 + Math.random() * 5;
+    const y = random() * canvas.height;
+    const h = 1 + random() * 5;
     ctx.fillStyle = i % 2 ? "#fff1c7" : "#6d4c35";
     ctx.fillRect(0, y, canvas.width, h);
   }
@@ -139,18 +163,22 @@ function createRingTexture() {
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
   gradient.addColorStop(0, "rgba(255,255,255,0)");
   gradient.addColorStop(0.08, "rgba(214,190,145,0.18)");
-  gradient.addColorStop(0.24, "rgba(245,222,170,0.85)");
+  gradient.addColorStop(0.21, "rgba(245,222,170,0.88)");
+  gradient.addColorStop(0.29, "rgba(90,73,58,0.22)");
   gradient.addColorStop(0.42, "rgba(124,98,72,0.28)");
-  gradient.addColorStop(0.48, "rgba(10,8,7,0.08)");
-  gradient.addColorStop(0.54, "rgba(239,210,155,0.92)");
+  gradient.addColorStop(0.48, "rgba(7,6,6,0.02)");
+  gradient.addColorStop(0.5, "rgba(2,2,3,0.72)");
+  gradient.addColorStop(0.52, "rgba(7,6,6,0.02)");
+  gradient.addColorStop(0.58, "rgba(239,210,155,0.92)");
   gradient.addColorStop(0.76, "rgba(188,160,113,0.64)");
   gradient.addColorStop(0.95, "rgba(255,255,255,0.08)");
   gradient.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  const random = createSeededRandom(1206);
   for (let x = 0; x < canvas.width; x += 4) {
-    ctx.fillStyle = `rgba(255, 244, 211, ${Math.random() * 0.16})`;
+    ctx.fillStyle = `rgba(255, 244, 211, ${random() * 0.16})`;
     ctx.fillRect(x, 0, 1, canvas.height);
   }
 
@@ -163,11 +191,12 @@ function createRingTexture() {
 function createStars() {
   const geometry = new THREE.BufferGeometry();
   const positions = [];
+  const random = createSeededRandom(1212);
   for (let i = 0; i < 900; i += 1) {
     positions.push(
-      THREE.MathUtils.randFloatSpread(28),
-      THREE.MathUtils.randFloatSpread(16),
-      THREE.MathUtils.randFloat(-18, -6),
+      (random() - 0.5) * 28,
+      (random() - 0.5) * 16,
+      -18 + random() * 12,
     );
   }
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -180,6 +209,14 @@ function createStars() {
       opacity: 0.74,
     }),
   );
+}
+
+function createSeededRandom(seed) {
+  let value = seed >>> 0;
+  return () => {
+    value = (value * 1664525 + 1013904223) >>> 0;
+    return value / 4294967296;
+  };
 }
 
 function resize() {
@@ -198,21 +235,26 @@ function resize() {
 function setPreset(preset) {
   state.preset = preset;
   presetButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.preset === preset);
+    const isActive = button.dataset.preset === preset;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
   });
 
   if (preset === "infrared") {
     saturn.material.color.set(0xff8a4c);
     rings.material.color.set(0x7bd8ff);
     keyLight.color.set(0xff6d4c);
+    keyLight.intensity = 3.8;
   } else if (preset === "eclipse") {
-    saturn.material.color.set(0x8c96aa);
-    rings.material.color.set(0xd9c7a2);
+    saturn.material.color.set(0x6d7485);
+    rings.material.color.set(0xead9b6);
     keyLight.color.set(0x86aaff);
+    keyLight.intensity = 1.85;
   } else {
     saturn.material.color.set(0xffffff);
     rings.material.color.set(0xffffff);
     keyLight.color.set(0xffe0ad);
+    keyLight.intensity = 3.2;
   }
 }
 
@@ -223,7 +265,34 @@ function updateHud() {
   trackingDot.classList.toggle("active", state.detected);
 }
 
+function resetView() {
+  state.targetRotationY = DEFAULT_VIEW.rotationY;
+  state.targetRotationX = DEFAULT_VIEW.rotationX;
+  state.targetScale = DEFAULT_VIEW.scale;
+  state.targetTilt = DEFAULT_VIEW.tilt;
+  state.mode = cameraSession.stream ? "手势待机" : "触控备用";
+  updateHud();
+}
+
+function setGestureTarget(key, value, smoothing = 0.28) {
+  if (key === "targetRotationX") {
+    value = THREE.MathUtils.clamp(value, ...LIMITS.rotationX);
+  } else if (key === "targetScale") {
+    value = THREE.MathUtils.clamp(value, ...LIMITS.scale);
+  } else if (key === "targetTilt") {
+    value = THREE.MathUtils.clamp(value, ...LIMITS.tilt);
+  }
+
+  state[key] = THREE.MathUtils.lerp(state[key], value, smoothing);
+}
+
 async function startCamera() {
+  if (cameraSession.starting) return;
+  if (cameraSession.stream) {
+    stopCamera();
+    return;
+  }
+
   if (!navigator.mediaDevices?.getUserMedia) {
     trackingLabel.textContent = "浏览器不支持摄像头";
     state.mode = "摄像头不可用";
@@ -239,26 +308,60 @@ async function startCamera() {
   }
 
   try {
+    cameraSession.starting = true;
     cameraButton.disabled = true;
     cameraButtonLabel.textContent = "启动中";
     trackingLabel.textContent = "请求摄像头";
     const stream = await requestCameraStream();
+    cameraSession.stream = stream;
+    bindCameraTrackEvents(stream);
     video.srcObject = stream;
     setCameraMirror(stream);
     await video.play();
     stage.classList.add("camera-on");
     trackingLabel.textContent = "加载手势模型";
     await startHandTracking();
-    cameraButtonLabel.textContent = "已开启";
+    setCameraButtonState(true);
   } catch (error) {
     console.error(error);
+    stopCamera();
     trackingLabel.textContent = getCameraErrorMessage(error);
     cameraButtonLabel.textContent = "重试";
     state.mode = "触控备用";
   } finally {
+    cameraSession.starting = false;
     cameraButton.disabled = false;
     updateHud();
   }
+}
+
+function stopCamera() {
+  stopHandDetection();
+
+  cameraSession.handLandmarker?.close?.();
+  cameraSession.handLandmarker = null;
+  cameraSession.lastVideoTime = -1;
+  cameraSession.shouldResumeOnVisible = false;
+  cameraSession.stream?.getTracks().forEach((track) => track.stop());
+  cameraSession.stream = null;
+
+  video.pause();
+  video.srcObject = null;
+  stage.classList.remove("camera-on");
+  video.classList.remove("mirrored");
+  state.detected = false;
+  state.mirroredCamera = true;
+  state.mode = "触控备用";
+  trackingLabel.textContent = "摄像头已关闭";
+  clearGestures();
+  setCameraButtonState(false);
+  updateHud();
+}
+
+function setCameraButtonState(isOn) {
+  cameraButtonLabel.textContent = isOn ? "关闭 AR" : "开启 AR";
+  cameraButton.setAttribute("aria-label", isOn ? "关闭 AR 摄像头" : "开启 AR 摄像头");
+  cameraButton.setAttribute("aria-pressed", String(isOn));
 }
 
 async function requestCameraStream() {
@@ -303,6 +406,22 @@ async function requestCameraStream() {
   throw lastError;
 }
 
+function bindCameraTrackEvents(stream) {
+  stream.getVideoTracks().forEach((track) => {
+    track.addEventListener(
+      "ended",
+      () => {
+        if (cameraSession.stream !== stream) return;
+        stopCamera();
+        trackingLabel.textContent = "摄像头已断开";
+        state.mode = "触控备用";
+        updateHud();
+      },
+      { once: true },
+    );
+  });
+}
+
 function setCameraMirror(stream) {
   const [track] = stream.getVideoTracks();
   const settings = track?.getSettings?.() ?? {};
@@ -311,6 +430,7 @@ function setCameraMirror(stream) {
 }
 
 function getCameraErrorMessage(error) {
+  if (error?.name === "MediaPipeLoadError") return "手势模型加载失败";
   if (error?.name === "NotAllowedError") return "摄像头权限被拒绝";
   if (error?.name === "NotFoundError") return "未找到摄像头";
   if (error?.name === "NotReadableError") return "摄像头被占用";
@@ -320,24 +440,53 @@ function getCameraErrorMessage(error) {
 }
 
 async function startHandTracking() {
-  const vision = await import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
-  );
-  const filesetResolver = await vision.FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
-  );
-  const handLandmarker = await createHandLandmarker(vision, filesetResolver);
+  if (cameraSession.handLandmarker) return;
 
-  let lastVideoTime = -1;
+  try {
+    const vision = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
+    );
+    const filesetResolver = await vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+    );
+    const handLandmarker = await createHandLandmarker(vision, filesetResolver);
+    cameraSession.handLandmarker = handLandmarker;
+    cameraSession.lastVideoTime = -1;
+    startHandDetection();
+  } catch (error) {
+    error.name = "MediaPipeLoadError";
+    throw error;
+  }
+}
+
+function startHandDetection() {
+  if (cameraSession.detectAnimationId || !cameraSession.stream || !cameraSession.handLandmarker) return;
+  if (document.hidden) {
+    cameraSession.shouldResumeOnVisible = true;
+    return;
+  }
+
   const detect = () => {
-    if (video.currentTime !== lastVideoTime) {
-      lastVideoTime = video.currentTime;
-      const result = handLandmarker.detectForVideo(video, performance.now());
+    if (!cameraSession.stream || !cameraSession.handLandmarker || document.hidden) {
+      cameraSession.detectAnimationId = 0;
+      cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream && cameraSession.handLandmarker);
+      return;
+    }
+
+    if (video.currentTime !== cameraSession.lastVideoTime) {
+      cameraSession.lastVideoTime = video.currentTime;
+      const result = cameraSession.handLandmarker.detectForVideo(video, performance.now());
       applyGestureResult(result.landmarks ?? []);
     }
-    requestAnimationFrame(detect);
+    cameraSession.detectAnimationId = requestAnimationFrame(detect);
   };
-  detect();
+  cameraSession.detectAnimationId = requestAnimationFrame(detect);
+}
+
+function stopHandDetection() {
+  if (!cameraSession.detectAnimationId) return;
+  cancelAnimationFrame(cameraSession.detectAnimationId);
+  cameraSession.detectAnimationId = 0;
 }
 
 async function createHandLandmarker(vision, filesetResolver) {
@@ -384,12 +533,12 @@ function applyGestureResult(hands) {
   const primary = hands[0];
   const palm = midpoint(primary[0], primary[9]);
   const palmX = state.mirroredCamera ? 1 - palm.x : palm.x;
-  state.targetRotationY = THREE.MathUtils.mapLinear(palmX, 0.18, 0.82, 1.15, -1.15);
-  state.targetRotationX = THREE.MathUtils.mapLinear(palm.y, 0.18, 0.82, -0.42, 0.42);
+  setGestureTarget("targetRotationY", THREE.MathUtils.mapLinear(palmX, 0.18, 0.82, 1.15, -1.15));
+  setGestureTarget("targetRotationX", THREE.MathUtils.mapLinear(palm.y, 0.18, 0.82, -0.42, 0.42));
 
   const pinch = distance(primary[4], primary[8]);
   if (pinch < 0.075) {
-    state.targetScale = THREE.MathUtils.clamp(1.55 - pinch * 7.5, 0.72, 1.48);
+    setGestureTarget("targetScale", 1.55 - pinch * 7.5);
     state.mode = "捏合缩放";
   } else {
     state.mode = "手掌旋转";
@@ -399,8 +548,8 @@ function applyGestureResult(hands) {
     const a = midpoint(hands[0][0], hands[0][9]);
     const b = midpoint(hands[1][0], hands[1][9]);
     const heightDelta = THREE.MathUtils.clamp((a.y - b.y) * 1.9, -0.78, 0.78);
-    state.targetTilt = THREE.MathUtils.degToRad(26.7) + heightDelta;
-    state.targetScale = THREE.MathUtils.clamp(0.82 + distance(a, b) * 1.35, 0.72, 1.62);
+    setGestureTarget("targetTilt", DEFAULT_VIEW.tilt + heightDelta);
+    setGestureTarget("targetScale", 0.82 + distance(a, b) * 1.35);
     state.mode = "双手操控";
   }
 
@@ -491,20 +640,34 @@ function bindPointerFallback() {
     pointer.lastX = event.clientX;
     pointer.lastY = event.clientY;
     state.targetRotationY += dx * 0.008;
-    state.targetRotationX = THREE.MathUtils.clamp(state.targetRotationX + dy * 0.006, -0.8, 0.8);
+    state.targetRotationX = THREE.MathUtils.clamp(
+      state.targetRotationX + dy * 0.006,
+      ...LIMITS.rotationX,
+    );
     state.mode = "触控旋转";
     updateHud();
   });
 
-  sceneCanvas.addEventListener("pointerup", (event) => {
+  const endPointer = (event) => {
     pointer.active = false;
-    sceneCanvas.releasePointerCapture(event.pointerId);
+    if (sceneCanvas.hasPointerCapture(event.pointerId)) {
+      sceneCanvas.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  sceneCanvas.addEventListener("pointerup", endPointer);
+  sceneCanvas.addEventListener("pointercancel", endPointer);
+  sceneCanvas.addEventListener("lostpointercapture", () => {
+    pointer.active = false;
   });
 
   window.addEventListener(
     "wheel",
     (event) => {
-      state.targetScale = THREE.MathUtils.clamp(state.targetScale - event.deltaY * 0.001, 0.68, 1.7);
+      state.targetScale = THREE.MathUtils.clamp(
+        state.targetScale - event.deltaY * 0.001,
+        ...LIMITS.scale,
+      );
       state.mode = "滚轮缩放";
       updateHud();
     },
@@ -512,8 +675,24 @@ function bindPointerFallback() {
   );
 }
 
+function handleVisibilityChange() {
+  if (document.hidden) {
+    cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream && cameraSession.handLandmarker);
+    stopHandDetection();
+    return;
+  }
+
+  if (cameraSession.shouldResumeOnVisible) {
+    cameraSession.shouldResumeOnVisible = false;
+    cameraSession.lastVideoTime = -1;
+    startHandDetection();
+  }
+}
+
 window.addEventListener("resize", resize);
+document.addEventListener("visibilitychange", handleVisibilityChange);
 cameraButton.addEventListener("click", startCamera);
+resetButton.addEventListener("click", resetView);
 presetButtons.forEach((button) => {
   button.addEventListener("click", () => setPreset(button.dataset.preset));
 });
