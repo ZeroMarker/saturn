@@ -2,10 +2,12 @@
 
 ## Current Status
 
+- **All planned phases (1–5) are complete.**
 - Live site: `https://zeromarker.github.io/saturn/`
 - Deployment: GitHub Pages through `.github/workflows/deploy.yml`
 - Build stack: Vite, npm-managed Three.js, runtime MediaPipe Tasks Vision CDN
-- Remaining primary work: finish splitting `src/main.js` into focused modules.
+- Module split done: `state.js`, `scene.js`, `camera.js`, `gestures.js`, `ui.js`, `main.js`
+- Code quality tooling: ESLint (minimal config)
 
 ## Phase 1: Stability
 
@@ -46,16 +48,19 @@
   - Acceptance: project has `package.json`, local dev server script, and production build script.
 - [x] Move CDN dependencies into package-managed dependencies.
   - Acceptance: Three.js is installed through npm and imported from the bundled app.
-- [ ] Split `src/main.js` into focused modules.
+- [x] Split `src/main.js` into focused modules.
   - Acceptance: rendering, camera lifecycle, gesture handling, and UI state are separated.
-  - Progress: procedural texture, shadow, and starfield generation moved to `src/procedural.js`.
-  - Suggested split:
-    - `src/scene.js`: renderer, scene, camera, lights, Saturn meshes, animation loop
-    - `src/camera.js`: camera stream lifecycle and track interruption handling
-    - `src/gestures.js`: MediaPipe loading, detection loop, landmark mapping
-    - `src/ui.js`: HUD updates, controls, preset state, reset state
+  - Completed split:
+    - `src/state.js`: shared state object, constants, utility functions
+    - `src/scene.js`: Three.js renderer, scene, camera, lights, Saturn meshes, animation loop with delta-time
+    - `src/camera.js`: camera stream lifecycle, frame-by-frame detection loop, track interruption handling
+    - `src/gestures.js`: MediaPipe loading, hand landmarker, landmark-to-gesture mapping, skeleton drawing
+    - `src/ui.js`: DOM references, HUD updates, preset/reset buttons, pointer fallback, event binding
+    - `src/main.js`: thin entry point (92 lines) that wires modules together via callbacks
 - [x] Add formatting and linting.
-  - Acceptance: `npm run lint` or equivalent catches basic JavaScript issues.
+  - Acceptance: `npm run lint` catches no-unused-vars and console warnings.
+- [x] Add delta-time based animation.
+  - Acceptance: Saturn rotation speed is consistent across different frame rates.
 
 ## Phase 5: Publishing
 
@@ -66,8 +71,10 @@
 - [x] Validate production build.
   - Acceptance: production output serves correctly from a static server.
 
-## Suggested Execution Order
+## Future Considerations
 
-1. Finish Phase 4 module split.
-2. Add browser-level visual smoke checks if Playwright or Chromium becomes available.
-3. Consider replacing runtime MediaPipe CDN with package-managed assets if offline or stricter supply-chain control becomes important.
+- **Browser-level visual smoke tests** — Add Playwright or similar if Chromium becomes available in the environment, to validate gesture→state→render pipeline without manual testing.
+- **MediaPipe CDN → bundled assets** — Consider replacing runtime CDN imports with package-managed (`@mediapipe/tasks-vision`) for offline capability and stricter supply-chain control. Note that the WASM and model file must still be served statically by the browser.
+- **Service Worker / PWA** — Add a service worker to cache Three.js bundle and assets for faster repeat visits and offline touch-fallback mode.
+- **Animations / transitions** — Smooth the camera-on/camera-off state transitions, add a loading spinner during MediaPipe model download.
+- **Multi-language HUD** — The HUD labels are currently hardcoded in Chinese; consider externalizing strings.
