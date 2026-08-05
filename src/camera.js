@@ -17,6 +17,7 @@ let updateMode = null;
 let updateHud = null;
 
 let handDetectFn = null;
+let hasHandLandmarker = () => false;
 
 export function configureCamera(config) {
   videoElement = config.video;
@@ -26,6 +27,7 @@ export function configureCamera(config) {
   setCameraButtonState = config.setCameraButtonState ?? (() => {});
   updateMode = config.updateMode ?? (() => {});
   updateHud = config.updateHud ?? (() => {});
+  hasHandLandmarker = config.hasHandLandmarker ?? (() => false);
 }
 
 export function isCameraOn() {
@@ -76,7 +78,7 @@ export async function startCamera() {
   } catch (error) {
     stopCamera();
     updateTrackingLabel(getCameraErrorMessage(error));
-    setCameraButtonState(false);
+    setCameraButtonState("retry");
     console.warn("Camera startup failed:", error.name, error.message);
   } finally {
     cameraSession.starting = false;
@@ -195,9 +197,9 @@ function startHandDetection() {
   }
 
   const detect = () => {
-    if (!cameraSession.stream || document.hidden) {
+    if (!cameraSession.stream || !hasHandLandmarker() || document.hidden) {
       cameraSession.detectAnimationId = 0;
-      cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream);
+      cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream && hasHandLandmarker());
       return;
     }
 
@@ -218,7 +220,7 @@ function stopHandDetection() {
 
 export function handleVisibilityChange() {
   if (document.hidden) {
-    cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream);
+    cameraSession.shouldResumeOnVisible = Boolean(cameraSession.stream && hasHandLandmarker());
     stopHandDetection();
     return;
   }

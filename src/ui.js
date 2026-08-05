@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { state } from "./state.js";
+import { state, DEFAULT_VIEW, LIMITS } from "./state.js";
 
 // DOM element references
 export const video = document.querySelector("#cameraFeed");
@@ -51,6 +51,13 @@ export function setCameraButtonState(isOn) {
     cameraButton.disabled = true;
     return;
   }
+  if (isOn === "retry") {
+    cameraButtonLabel.textContent = "重试";
+    cameraButton.disabled = false;
+    cameraButton.setAttribute("aria-label", "重试开启 AR 摄像头");
+    cameraButton.setAttribute("aria-pressed", "false");
+    return;
+  }
   const on = Boolean(isOn);
   cameraButtonLabel.textContent = on ? "关闭 AR" : "开启 AR";
   cameraButton.disabled = false;
@@ -93,7 +100,7 @@ export function bindPointerFallback() {
     state.targetRotationY += dx * 0.008;
     state.targetRotationX = THREE.MathUtils.clamp(
       state.targetRotationX + dy * 0.006,
-      ...[-0.8, 0.8],
+      ...LIMITS.rotationX,
     );
     state.mode = "触控旋转";
     updateHud();
@@ -117,8 +124,7 @@ export function bindPointerFallback() {
     (event) => {
       state.targetScale = THREE.MathUtils.clamp(
         state.targetScale - event.deltaY * 0.001,
-        0.68,
-        1.7,
+        ...LIMITS.scale,
       );
       state.mode = "滚轮缩放";
       updateHud();
@@ -147,10 +153,10 @@ export function bindCameraButton() {
 
 export function bindResetButton() {
   resetButton.addEventListener("click", () => {
-    state.targetRotationY = 0.45;
-    state.targetRotationX = -0.12;
-    state.targetScale = 1;
-    state.targetTilt = THREE.MathUtils.degToRad(26.7);
+    state.targetRotationY = DEFAULT_VIEW.rotationY;
+    state.targetRotationX = DEFAULT_VIEW.rotationX;
+    state.targetScale = DEFAULT_VIEW.scale;
+    state.targetTilt = DEFAULT_VIEW.tilt;
     state.mode = isCameraOn() ? "手势待机" : "触控备用";
     updateHud();
   });

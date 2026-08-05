@@ -4,10 +4,12 @@ import { state, setGestureTarget, midpoint, distance, DEFAULT_VIEW } from "./sta
 let gestureContext = null;
 let handLandmarker = null;
 let updateHud = null;
+let updateTrackingLabel = null;
 
 export function configureGestures(config) {
   gestureContext = config.gestureContext;
   updateHud = config.updateHud ?? (() => {});
+  updateTrackingLabel = config.updateTrackingLabel ?? (() => {});
 }
 
 export function getHandLandmarker() {
@@ -77,6 +79,7 @@ export function detectHands(videoElement, time) {
 export function applyGestureResult(hands) {
   clearGestures();
   state.detected = hands.length > 0;
+  updateTrackingLabel(hands.length ? `${hands.length} 只手已追踪` : "寻找手势");
 
   if (!hands.length) {
     state.mode = "待机";

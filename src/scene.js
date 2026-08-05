@@ -87,7 +87,6 @@ export function resize() {
 }
 
 export function setPreset(preset) {
-
   if (preset === "infrared") {
     saturn.material.color.set(0xff8a4c);
     rings.material.color.set(0x7bd8ff);
@@ -120,10 +119,15 @@ export function startAnimation() {
     saturn.rotation.y += 0.004 * delta;
     stars.rotation.y += 0.0008 * delta;
 
-    root.rotation.y = THREE.MathUtils.lerp(root.rotation.y, state.targetRotationY, 0.075);
-    root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, state.targetRotationX, 0.075);
-    root.rotation.z = THREE.MathUtils.lerp(root.rotation.z, state.targetTilt, 0.075);
-    const scale = THREE.MathUtils.lerp(root.scale.x, state.targetScale, 0.09);
+    // Frame-rate-independent exponential smoothing:
+    // per-frame factor k applied n frames ≈ (1-k)^n, so scale by delta
+    const rotationFactor = 1 - Math.pow(1 - 0.075, delta);
+    const scaleFactor = 1 - Math.pow(1 - 0.09, delta);
+
+    root.rotation.y = THREE.MathUtils.lerp(root.rotation.y, state.targetRotationY, rotationFactor);
+    root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, state.targetRotationX, rotationFactor);
+    root.rotation.z = THREE.MathUtils.lerp(root.rotation.z, state.targetTilt, rotationFactor);
+    const scale = THREE.MathUtils.lerp(root.scale.x, state.targetScale, scaleFactor);
     root.scale.setScalar(scale);
 
     renderer.render(scene, camera);

@@ -39,6 +39,7 @@ initScene(sceneCanvas);
 configureGestures({
   gestureContext,
   updateHud,
+  updateTrackingLabel,
 });
 
 // ─── 3. Configure camera with callbacks ──────────────────────
@@ -48,6 +49,7 @@ configureCamera({
   setCameraButtonState,
   updateMode,
   updateHud,
+  hasHandLandmarker: () => Boolean(getHandLandmarker()),
   onStreamReady: async () => {
     await initHandTracking();
   },
