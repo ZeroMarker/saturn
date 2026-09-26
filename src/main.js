@@ -39,6 +39,7 @@ initScene(sceneCanvas);
 
 // ─── 2. Configure gestures ───────────────────────────────────
 configureGestures({
+  video,
   gestureContext,
   updateHud,
   updateTrackingLabel,

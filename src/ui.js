@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { state, DEFAULT_VIEW, LIMITS } from "./state.js";
+import { state, DEFAULT_VIEW } from "./state.js";
+import { bindPointerControls } from "./pointer.js";
 
 // DOM element references
 export const video = document.querySelector("#cameraFeed");
@@ -85,53 +86,7 @@ export function resizeGestureCanvas() {
 }
 
 export function bindPointerFallback() {
-  sceneCanvas.addEventListener("pointerdown", (event) => {
-    pointer.active = true;
-    pointer.lastX = event.clientX;
-    pointer.lastY = event.clientY;
-    sceneCanvas.setPointerCapture(event.pointerId);
-  });
-
-  sceneCanvas.addEventListener("pointermove", (event) => {
-    if (!pointer.active) return;
-    const dx = event.clientX - pointer.lastX;
-    const dy = event.clientY - pointer.lastY;
-    pointer.lastX = event.clientX;
-    pointer.lastY = event.clientY;
-    state.targetRotationY += dx * 0.008;
-    state.targetRotationX = THREE.MathUtils.clamp(
-      state.targetRotationX + dy * 0.006,
-      ...LIMITS.rotationX,
-    );
-    state.mode = "触控旋转";
-    updateHud();
-  });
-
-  const endPointer = (event) => {
-    pointer.active = false;
-    if (sceneCanvas.hasPointerCapture(event.pointerId)) {
-      sceneCanvas.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  sceneCanvas.addEventListener("pointerup", endPointer);
-  sceneCanvas.addEventListener("pointercancel", endPointer);
-  sceneCanvas.addEventListener("lostpointercapture", () => {
-    pointer.active = false;
-  });
-
-  window.addEventListener(
-    "wheel",
-    (event) => {
-      state.targetScale = THREE.MathUtils.clamp(
-        state.targetScale - event.deltaY * 0.001,
-        ...LIMITS.scale,
-      );
-      state.mode = "滚轮缩放";
-      updateHud();
-    },
-    { passive: true },
-  );
+  pointer = bindPointerControls(sceneCanvas, updateHud);
 }
 
 export function bindPresetButtons() {

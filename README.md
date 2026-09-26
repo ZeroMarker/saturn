@@ -23,7 +23,7 @@ npm run dev
 
 ```bash
 npm run lint     # ESLint 代码检查
-npm test         # 摄像头生命周期与检测异常回归测试
+npm test         # 摄像头、手势、触控和环纹理回归测试
 npm run build    # Vite 生产构建，产物输出到 dist/
 npm run preview  # 本地预览构建产物
 ```
@@ -42,6 +42,8 @@ npm run preview  # 本地预览构建产物
 │   ├── camera.js                 # 摄像头流生命周期、帧检测循环
 │   ├── gestures.js               # MediaPipe 手势识别、检测、绘制
 │   ├── ui.js                     # DOM 引用、HUD、指针备用、按钮绑定
+│   ├── pointer.js                # 单指旋转、双指捏合、滚轮控制
+│   ├── video-layout.js           # 摄像头裁剪与镜像坐标映射
 │   └── procedural.js             # 土星纹理、环阴影和星场生成
 ├── styles.css                    # 全局布局和 HUD 样式
 ├── eslint.config.js              # ESLint 最小化配置 (browser globals)
@@ -56,6 +58,7 @@ npm run preview  # 本地预览构建产物
 | 🤏 单手（捏合） | 拇指与食指捏合 | 缩放 |
 | 👐 双手 | 双手距离 / 高度差 | 缩放 + 倾斜倾角 |
 | 🖱️ 鼠标/触控 | 拖拽 | 旋转（摄像头不可用时备用） |
+| 📱 双指触控 | 捏合 / 张开 | 缩放（摄像头不可用时备用） |
 | 🖱️ 滚轮 | 滚动 | 缩放（摄像头不可用时备用） |
 | 🔘 预设按钮 | 自然 / 红外 / 食影 | 切换显示风格 |
 | 🔘 重置 | 点击 | 恢复默认视角 |
@@ -116,7 +119,7 @@ import {
 } from "./gestures.js";
 ```
 
-- **`configureGestures(config)`** — 注入 `gestureContext` 和 `updateHud` 回调
+- **`configureGestures(config)`** — 注入 `video`、`gestureContext`、`updateHud` 和 `updateTrackingLabel` 回调
 - **`initHandTracking()`** — 动态加载 MediaPipe 运行时 → 创建 HandLandmarker（GPU → CPU 降级）
 - **`detectHands(videoElement, time)`** — 执行单帧检测，返回 `landmarks[]`
 - **`applyGestureResult(hands)`** — 解析手势结果：更新状态、绘制骨骼、调用 `updateHud`
@@ -158,9 +161,12 @@ import {
 - 权限拒绝、设备占用等错误直接提示，仅在参数不支持时尝试备用约束；识别异常会关闭摄像头并提供重试。
 - 手势画布的像素比上限为 2，降低高分屏的绘制开销；窄屏和低高度窗口分别使用避免重叠的控制布局。
 - 竖屏按宽高比调整相机距离，默认视角可以完整展示土星环。
+- 手势骨架按视频 `object-fit: cover` 的居中裁剪与镜像转换定位；双手操控使用双掌中心旋转，并按屏幕左右顺序计算倾角，避免检测顺序变化引发跳动。
+- 触控支持单指旋转和双指捏合缩放，取消操作或窗口失焦会释放指针；滚轮仅在模型画布上缩放，并统一像素、行、页单位。
+- 土星环纹理沿半径映射为同心条带，使用纹理自身的透明度，并关闭半透明环的深度写入。
 - 土星纹理、环纹理、环阴影和多层星场由 `src/procedural.js` 生成，使用固定种子保证刷新后一致。
 - 渲染循环使用 **delta-time** 归一化到 60fps，确保不同帧率下旋转速度一致。
-- 代码质量由 **ESLint** 保证，配置为最小化规则集（browser globals, no-unused-vars, no-console 仅允许 warn）。
+- **ESLint** 检查应用与测试代码，告警也会阻止检查通过；**Node.js Test Runner** 覆盖摄像头、手势与触控交互回归。
 - 开发进度追踪见 [`todo.md`](./todo.md)。
 
 ## GitHub Pages 部署

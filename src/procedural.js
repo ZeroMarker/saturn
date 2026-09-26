@@ -65,9 +65,21 @@ export function createRingTexture() {
   }
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+export function createSaturnRingGeometry() {
+  const innerRadius = 1.55;
+  const outerRadius = 2.68;
+  const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 192, 8);
+  const positions = geometry.attributes.position;
+  const uv = geometry.attributes.uv;
+  for (let i = 0; i < positions.count; i++) {
+    const radius = Math.hypot(positions.getX(i), positions.getY(i));
+    uv.setXY(i, THREE.MathUtils.clamp((radius - innerRadius) / (outerRadius - innerRadius), 0, 1), 0.5);
+  }
+  return geometry;
 }
 
 export function createRingShadowTexture() {

@@ -1,14 +1,17 @@
 import * as THREE from "three";
 import { state, setGestureTarget, midpoint, distance, DEFAULT_VIEW } from "./state.js";
+import { projectVideoPoint } from "./video-layout.js";
 
 let gestureContext = null;
 let handLandmarker = null;
 let updateHud = null;
 let updateTrackingLabel = null;
 let trackingGeneration = 0;
+let videoElement = null;
 
 export function configureGestures(config) {
   gestureContext = config.gestureContext;
+  videoElement = config.video ?? null;
   updateHud = config.updateHud ?? (() => {});
   updateTrackingLabel = config.updateTrackingLabel ?? (() => {});
 }
@@ -99,14 +102,17 @@ export function applyGestureResult(hands) {
 
   hands.forEach(drawHand);
 
+  const palms = hands.map((hand) => midpoint(hand[0], hand[9]));
+  // Screen order is stable even when the model swaps the two result entries.
+  palms.sort((a, b) => state.mirroredCamera ? b.x - a.x : a.x - b.x);
   const primary = hands[0];
-  const palm = midpoint(primary[0], primary[9]);
+  const palm = palms.length > 1 ? midpoint(palms[0], palms[1]) : palms[0];
   const palmX = state.mirroredCamera ? 1 - palm.x : palm.x;
   setGestureTarget("targetRotationY", THREE.MathUtils.mapLinear(palmX, 0.18, 0.82, 1.15, -1.15));
   setGestureTarget("targetRotationX", THREE.MathUtils.mapLinear(palm.y, 0.18, 0.82, -0.42, 0.42));
 
   const pinch = distance(primary[4], primary[8]);
-  if (pinch < 0.075) {
+  if (hands.length === 1 && pinch < 0.075) {
     setGestureTarget("targetScale", 1.55 - pinch * 7.5);
     state.mode = "捏合缩放";
   } else {
@@ -114,8 +120,7 @@ export function applyGestureResult(hands) {
   }
 
   if (hands.length > 1) {
-    const a = midpoint(hands[0][0], hands[0][9]);
-    const b = midpoint(hands[1][0], hands[1][9]);
+    const [a, b] = palms;
     const heightDelta = THREE.MathUtils.clamp((a.y - b.y) * 1.9, -0.78, 0.78);
     setGestureTarget("targetTilt", DEFAULT_VIEW.tilt + heightDelta);
     setGestureTarget("targetScale", 0.82 + distance(a, b) * 1.35);
@@ -132,6 +137,10 @@ function clearGestures() {
 function drawHand(points) {
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const projected = points.map((point) => projectVideoPoint(
+    point, videoElement?.videoWidth, videoElement?.videoHeight,
+    width, height, state.mirroredCamera,
+  ));
   const chains = [
     [0, 1, 2, 3, 4],
     [0, 5, 6, 7, 8],
@@ -148,22 +157,17 @@ function drawHand(points) {
   chains.forEach((chain) => {
     gestureContext.beginPath();
     chain.forEach((index, i) => {
-      const x = normalizeGestureX(points[index].x) * width;
-      const y = points[index].y * height;
+      const { x, y } = projected[index];
       if (i === 0) gestureContext.moveTo(x, y);
       else gestureContext.lineTo(x, y);
     });
     gestureContext.stroke();
   });
 
-  points.forEach((point, index) => {
+  projected.forEach((point, index) => {
     const radius = index === 4 || index === 8 ? 5 : 3;
     gestureContext.beginPath();
-    gestureContext.arc(normalizeGestureX(point.x) * width, point.y * height, radius, 0, Math.PI * 2);
+    gestureContext.arc(point.x, point.y, radius, 0, Math.PI * 2);
     gestureContext.fill();
   });
-}
-
-function normalizeGestureX(x) {
-  return state.mirroredCamera ? 1 - x : x;
 }

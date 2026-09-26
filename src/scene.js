@@ -4,6 +4,7 @@ import {
   createRingTexture,
   createRingShadowTexture,
   createStars,
+  createSaturnRingGeometry,
 } from "./procedural.js";
 import { state } from "./state.js";
 
@@ -44,11 +45,11 @@ export function initScene(canvas) {
 
   const ringTexture = createRingTexture();
   rings = new THREE.Mesh(
-    new THREE.RingGeometry(1.55, 2.68, 192, 8),
+    createSaturnRingGeometry(),
     new THREE.MeshStandardMaterial({
       map: ringTexture,
-      alphaMap: ringTexture,
       transparent: true,
+      depthWrite: false,
       side: THREE.DoubleSide,
       roughness: 0.72,
       metalness: 0.08,
