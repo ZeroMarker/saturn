@@ -38,11 +38,13 @@ button:disabled {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .stage {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background:
     radial-gradient(circle at 22% 18%, rgba(117, 211, 255, 0.14), transparent 28rem),
@@ -142,6 +144,7 @@ h1 {
   padding: 0 14px;
   border-radius: 8px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .icon-button:hover,
@@ -253,7 +256,7 @@ h1 {
 
 @media (max-width: 720px) {
   h1 {
-    font-size: clamp(40px, 16vw, 76px);
+    font-size: clamp(40px, 13vw, 68px);
   }
 
   .icon-button {
@@ -281,7 +284,7 @@ h1 {
   .hud.right {
     right: 16px;
     top: auto;
-    bottom: 144px;
+    bottom: 258px;
     width: auto;
     grid-template-columns: repeat(3, minmax(64px, 1fr));
   }
@@ -294,5 +297,42 @@ h1 {
     left: 16px;
     right: 16px;
     bottom: 16px;
+  }
+}
+
+@media (max-width: 900px) and (max-height: 500px) {
+  .hud.left {
+    left: 16px;
+    bottom: 72px;
+    width: calc(100vw - 32px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .readout {
+    min-height: 36px;
+    padding: 0 8px;
+    gap: 4px;
+  }
+
+  .hud.right {
+    right: 16px;
+    top: auto;
+    bottom: 124px;
+    width: auto;
+    grid-template-columns: repeat(3, minmax(64px, 1fr));
+  }
+
+  .gesture-strip {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-feed,
+  .icon-button,
+  .tool-button {
+    transition: none;
   }
 }

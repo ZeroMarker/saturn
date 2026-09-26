@@ -23,6 +23,7 @@ npm run dev
 
 ```bash
 npm run lint     # ESLint 代码检查
+npm test         # 摄像头生命周期与检测异常回归测试
 npm run build    # Vite 生产构建，产物输出到 dist/
 npm run preview  # 本地预览构建产物
 ```
@@ -152,6 +153,11 @@ import {
 - Three.js 通过 npm 管理并由 Vite 打包。
 - MediaPipe Tasks Vision 仍通过运行时 CDN 加载，因为手势模型和 wasm 需要浏览器侧按需初始化。
 - 摄像头关闭时会释放 stream；页面隐藏时暂停手势检测，回到前台后恢复。
+- 页面隐藏时同时暂停 3D 渲染；离开页面时关闭摄像头，浏览器后退恢复页面后可重新开启 AR。
+- 摄像头启动采用会话标记，停止或断开后不会被迟到的权限请求或模型加载结果重新激活；迟到的资源会被释放。
+- 权限拒绝、设备占用等错误直接提示，仅在参数不支持时尝试备用约束；识别异常会关闭摄像头并提供重试。
+- 手势画布的像素比上限为 2，降低高分屏的绘制开销；窄屏和低高度窗口分别使用避免重叠的控制布局。
+- 竖屏按宽高比调整相机距离，默认视角可以完整展示土星环。
 - 土星纹理、环纹理、环阴影和多层星场由 `src/procedural.js` 生成，使用固定种子保证刷新后一致。
 - 渲染循环使用 **delta-time** 归一化到 60fps，确保不同帧率下旋转速度一致。
 - 代码质量由 **ESLint** 保证，配置为最小化规则集（browser globals, no-unused-vars, no-console 仅允许 warn）。
@@ -162,7 +168,7 @@ import {
 工作流文件：`.github/workflows/deploy.yml`
 
 1. push 到 `main` 时自动运行，也可在 Actions 页面手动触发。
-2. 执行 `npm ci` → `npm run lint` → `npm run build`，然后将 `dist/` 发布到 GitHub Pages。
+2. 执行 `npm ci` → `npm run lint` → `npm run build` → `npm test`，然后将 `dist/` 发布到 GitHub Pages。
 3. 首次使用时，在仓库 Settings → Pages → **Source** 中选择 **GitHub Actions**。
 
 项目站点会自动使用仓库名作为 Vite `base`（例如 `https://zeromarker.github.io/saturn/`）。

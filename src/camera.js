@@ -6,6 +6,7 @@ const cameraSession = {
   lastVideoTime: -1,
   starting: false,
   shouldResumeOnVisible: false,
+  generation: 0,
 };
 
 let videoElement = null;
@@ -60,33 +61,45 @@ export async function startCamera() {
     return;
   }
 
+  const generation = ++cameraSession.generation;
   try {
     cameraSession.starting = true;
     setCameraButtonState("starting");
     updateTrackingLabel("请求摄像头");
     const stream = await requestCameraStream();
+    if (generation !== cameraSession.generation) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     cameraSession.stream = stream;
     bindCameraTrackEvents(stream);
     videoElement.srcObject = stream;
     setCameraMirror(stream);
     await videoElement.play();
+    if (generation !== cameraSession.generation) return;
     document.querySelector(".stage").classList.add("camera-on");
     updateTrackingLabel("加载手势模型");
     await onStreamReady();
+    if (generation !== cameraSession.generation) return;
     setCameraButtonState(true);
     startHandDetection();
   } catch (error) {
+    if (generation !== cameraSession.generation) return;
     stopCamera();
     updateTrackingLabel(getCameraErrorMessage(error));
     setCameraButtonState("retry");
     console.warn("Camera startup failed:", error.name, error.message);
   } finally {
-    cameraSession.starting = false;
-    updateHud();
+    if (generation === cameraSession.generation) {
+      cameraSession.starting = false;
+      updateHud();
+    }
   }
 }
 
 export function stopCamera() {
+  cameraSession.generation += 1;
+  cameraSession.starting = false;
   stopHandDetection();
   cameraSession.lastVideoTime = -1;
   cameraSession.shouldResumeOnVisible = false;
@@ -97,6 +110,7 @@ export function stopCamera() {
   }
 
   stopCameraInternal();
+  setCameraButtonState(false);
   onStreamEnd();
   updateHud();
 }
@@ -148,6 +162,7 @@ async function requestCameraStream() {
     try {
       return await navigator.mediaDevices.getUserMedia(constraint);
     } catch (error) {
+      if (error.name !== "OverconstrainedError") throw error;
       lastError = error;
     }
   }
@@ -203,9 +218,17 @@ function startHandDetection() {
       return;
     }
 
-    if (videoElement.currentTime !== cameraSession.lastVideoTime) {
+    if (videoElement.readyState >= 2 && videoElement.currentTime !== cameraSession.lastVideoTime) {
       cameraSession.lastVideoTime = videoElement.currentTime;
-      handDetectFn(videoElement, performance.now());
+      try {
+        handDetectFn(videoElement, performance.now());
+      } catch (error) {
+        stopCamera();
+        updateTrackingLabel("手势识别失败，请重试");
+        setCameraButtonState("retry");
+        console.warn("Hand detection failed:", error);
+        return;
+      }
     }
     cameraSession.detectAnimationId = requestAnimationFrame(detect);
   };

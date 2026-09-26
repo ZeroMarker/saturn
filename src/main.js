@@ -1,10 +1,11 @@
-import { initScene, resize as resizeScene, setPreset, startAnimation } from "./scene.js";
+import { initScene, resize as resizeScene, setPreset, startAnimation, stopAnimation } from "./scene.js";
 import {
   configureCamera,
   setHandDetectFunction,
   startCamera,
   handleVisibilityChange,
   isCameraOn,
+  stopCamera,
 } from "./camera.js";
 import {
   configureGestures,
@@ -13,6 +14,7 @@ import {
   applyGestureResult,
   closeHandLandmarker,
   clearGestureCanvas,
+  getHandLandmarker,
 } from "./gestures.js";
 import {
   video,
@@ -81,7 +83,18 @@ window.addEventListener("resize", () => {
   resizeScene();
   resizeGestureCanvas();
 });
-document.addEventListener("visibilitychange", handleVisibilityChange);
+document.addEventListener("visibilitychange", () => {
+  handleVisibilityChange();
+  if (document.hidden) stopAnimation();
+  else startAnimation();
+});
+window.addEventListener("pagehide", () => {
+  stopAnimation();
+  stopCamera();
+});
+window.addEventListener("pageshow", () => {
+  if (!document.hidden) startAnimation();
+});
 bindCameraButton();
 bindResetButton();
 bindPresetButtons();
@@ -91,4 +104,4 @@ bindPointerFallback();
 resizeScene();
 resizeGestureCanvas();
 updateHud();
-startAnimation();
+if (!document.hidden) startAnimation();

@@ -5,6 +5,7 @@ let gestureContext = null;
 let handLandmarker = null;
 let updateHud = null;
 let updateTrackingLabel = null;
+let trackingGeneration = 0;
 
 export function configureGestures(config) {
   gestureContext = config.gestureContext;
@@ -17,6 +18,7 @@ export function getHandLandmarker() {
 }
 
 export function closeHandLandmarker() {
+  trackingGeneration += 1;
   handLandmarker?.close?.();
   handLandmarker = null;
 }
@@ -55,15 +57,23 @@ export async function loadHandLandmarker(vision, filesetResolver) {
 
 export async function initHandTracking() {
   if (handLandmarker) return;
+  const generation = ++trackingGeneration;
 
   try {
     const vision = await import(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
     );
+    if (generation !== trackingGeneration) return;
     const filesetResolver = await vision.FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
     );
-    handLandmarker = await loadHandLandmarker(vision, filesetResolver);
+    if (generation !== trackingGeneration) return;
+    const landmarker = await loadHandLandmarker(vision, filesetResolver);
+    if (generation !== trackingGeneration) {
+      landmarker.close();
+      return;
+    }
+    handLandmarker = landmarker;
   } catch (error) {
     error.name = "MediaPipeLoadError";
     throw error;

@@ -70,17 +70,18 @@ export function updateMode(mode) {
 }
 
 export function updateTrackingLabel(text) {
-  trackingLabel.textContent = text;
+  if (trackingLabel.textContent !== text) trackingLabel.textContent = text;
 }
 
 export function resizeGestureCanvas() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  gestureCanvas.width = Math.floor(width * window.devicePixelRatio);
-  gestureCanvas.height = Math.floor(height * window.devicePixelRatio);
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  gestureCanvas.width = Math.floor(width * pixelRatio);
+  gestureCanvas.height = Math.floor(height * pixelRatio);
   gestureCanvas.style.width = `${width}px`;
   gestureCanvas.style.height = `${height}px`;
-  gestureContext.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  gestureContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 }
 
 export function bindPointerFallback() {

@@ -83,6 +83,8 @@ export function resize() {
   const height = window.innerHeight;
   renderer.setSize(width, height, false);
   camera.aspect = width / height;
+  // Keep the rings in view on portrait screens without changing desktop framing.
+  camera.position.z = 7 / Math.min(camera.aspect, 1);
   camera.updateProjectionMatrix();
 }
 
