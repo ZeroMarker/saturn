@@ -8,8 +8,10 @@ let updateHud = null;
 let updateTrackingLabel = null;
 let trackingGeneration = 0;
 let videoElement = null;
+let pinchSession = null;
 
 export function configureGestures(config) {
+  pinchSession = null;
   gestureContext = config.gestureContext;
   videoElement = config.video ?? null;
   updateHud = config.updateHud ?? (() => {});
@@ -21,6 +23,7 @@ export function getHandLandmarker() {
 }
 
 export function closeHandLandmarker() {
+  pinchSession = null;
   trackingGeneration += 1;
   handLandmarker?.close?.();
   handLandmarker = null;
@@ -95,6 +98,7 @@ export function applyGestureResult(hands) {
   updateTrackingLabel(hands.length ? `${hands.length} 只手已追踪` : "寻找手势");
 
   if (!hands.length) {
+    pinchSession = null;
     state.mode = "待机";
     updateHud();
     return;
@@ -102,18 +106,33 @@ export function applyGestureResult(hands) {
 
   hands.forEach(drawHand);
 
-  const palms = hands.map((hand) => midpoint(hand[0], hand[9]));
+  const palms = hands.map((hand) => {
+    const point = projectVideoPoint(
+      midpoint(hand[0], hand[9]), videoElement?.videoWidth, videoElement?.videoHeight,
+      window.innerWidth, window.innerHeight, state.mirroredCamera,
+    );
+    return {
+      x: THREE.MathUtils.clamp(point.x / window.innerWidth, 0, 1),
+      y: THREE.MathUtils.clamp(point.y / window.innerHeight, 0, 1),
+    };
+  });
   // Screen order is stable even when the model swaps the two result entries.
-  palms.sort((a, b) => state.mirroredCamera ? b.x - a.x : a.x - b.x);
+  palms.sort((a, b) => a.x - b.x);
   const primary = hands[0];
   const palm = palms.length > 1 ? midpoint(palms[0], palms[1]) : palms[0];
-  const palmX = state.mirroredCamera ? 1 - palm.x : palm.x;
+  const palmX = palm.x;
   setGestureTarget("targetRotationY", THREE.MathUtils.mapLinear(palmX, 0.18, 0.82, 1.15, -1.15));
   setGestureTarget("targetRotationX", THREE.MathUtils.mapLinear(palm.y, 0.18, 0.82, -0.42, 0.42));
 
   const pinch = distance(primary[4], primary[8]);
-  if (hands.length === 1 && pinch < 0.075) {
-    setGestureTarget("targetScale", 1.55 - pinch * 7.5);
+  // A wider release threshold lets fingers open past the activation threshold
+  // without dropping the zoom session or resetting its baseline.
+  if (hands.length !== 1 || pinch >= 0.15) pinchSession = null;
+  if (hands.length === 1 && !pinchSession && pinch < 0.075) {
+    pinchSession = { distance: Math.max(pinch, 0.005), scale: state.targetScale };
+  }
+  if (pinchSession) {
+    setGestureTarget("targetScale", pinchSession.scale * Math.max(pinch, 0.005) / pinchSession.distance);
     state.mode = "捏合缩放";
   } else {
     state.mode = "手掌旋转";

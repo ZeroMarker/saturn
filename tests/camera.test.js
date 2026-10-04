@@ -113,6 +113,34 @@ test("stopping during permission request releases a late stream", async () => {
   assert.equal(frames.size, 0);
 });
 
+test("cancelled startup does not request fallback constraints", async () => {
+  const pending = deferred();
+  navigator.mediaDevices.getUserMedia = () => { requests++; return pending.promise; };
+  const startup = startCamera();
+  stopCamera();
+  pending.reject(Object.assign(new Error("constraints"), { name: "OverconstrainedError" }));
+  await startup;
+  assert.equal(requests, 1);
+  assert.equal(isCameraOn(), false);
+  assert.equal(buttons.at(-1), false);
+  assert.equal(frames.size, 0);
+});
+
+test("cancelled startup does not retry constraints or disturb a newer session", async () => {
+  const pending = deferred();
+  navigator.mediaDevices.getUserMedia = () => { requests++; return pending.promise; };
+  const oldStartup = startCamera();
+  stopCamera();
+  navigator.mediaDevices.getUserMedia = async () => { requests++; return stream; };
+  await startCamera();
+  pending.reject(Object.assign(new Error("constraints"), { name: "OverconstrainedError" }));
+  await oldStartup;
+  assert.equal(requests, 2);
+  assert.equal(video.srcObject, stream);
+  assert.equal(stream.track.stopped, false);
+  assert.equal(buttons.at(-1), true);
+});
+
 test("track interruption during model loading cannot restart detection", async () => {
   const pending = deferred();
   const entered = deferred();

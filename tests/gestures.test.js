@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, afterEach, test } from "node:test";
-import { configureGestures, applyGestureResult } from "../src/gestures.js";
+import { configureGestures, applyGestureResult, closeHandLandmarker } from "../src/gestures.js";
 import { state, DEFAULT_VIEW } from "../src/state.js";
 import { projectVideoPoint } from "../src/video-layout.js";
 
@@ -38,6 +38,70 @@ function hand(x, y) {
   points[8] = { x: x + 0.03, y };
   return points;
 }
+
+function pinchedHand(pinch) {
+  const points = hand(0.5, 0.5);
+  points[4].x = 0.5 - pinch / 2;
+  points[8].x = 0.5 + pinch / 2;
+  return points;
+}
+
+test("rotation uses visible screen coordinates in portrait and landscape, with either mirror", () => {
+  for (const [width, height] of [[400, 800], [1600, 400]]) {
+    window.innerWidth = width;
+    window.innerHeight = height;
+    const scale = Math.max(width / 1280, height / 720);
+    for (const mirrored of [false, true]) {
+      for (const [screenX, screenY] of [[0.18, 0.18], [0.82, 0.82]]) {
+        const x = ((mirrored ? 1 - screenX : screenX) * width - (width - 1280 * scale) / 2) / (1280 * scale);
+        const y = (screenY * height - (height - 720 * scale) / 2) / (720 * scale);
+        resetView(mirrored);
+        state.targetRotationY = state.targetRotationX = 0;
+        applyGestureResult([hand(x, y)]);
+        assert.ok(Math.abs(state.targetRotationY / 0.28 - (screenX === 0.18 ? 1.15 : -1.15)) < 1e-9);
+        assert.ok(Math.abs(state.targetRotationX / 0.28 - (screenY === 0.18 ? -0.42 : 0.42)) < 1e-9);
+      }
+    }
+  }
+});
+
+test("pinch preserves initial scale, zooms both ways and continues beyond activation threshold", () => {
+  state.targetScale = 0.8;
+  applyGestureResult([pinchedHand(0.06)]);
+  assert.ok(Math.abs(state.targetScale - 0.8) < 1e-9);
+  for (let i = 0; i < 80; i++) applyGestureResult([pinchedHand(0.12)]);
+  assert.equal(state.mode, "捏合缩放");
+  assert.ok(Math.abs(state.targetScale - 1.6) < 1e-9);
+  for (let i = 0; i < 80; i++) applyGestureResult([pinchedHand(0.03)]);
+  assert.ok(Math.abs(state.targetScale - 0.68) < 1e-9);
+  for (let i = 0; i < 80; i++) applyGestureResult([pinchedHand(0.14)]);
+  assert.ok(Math.abs(state.targetScale - 1.7) < 1e-9);
+});
+
+test("pinch releases and rebases after open fingers, tracking loss, two hands or camera stop", () => {
+  const releases = [
+    () => applyGestureResult([pinchedHand(0.16)]),
+    () => applyGestureResult([]),
+    () => applyGestureResult([hand(0.3, 0.5), hand(0.7, 0.5)]),
+    () => closeHandLandmarker(),
+  ];
+  for (const release of releases) {
+    applyGestureResult([pinchedHand(0.06)]);
+    applyGestureResult([pinchedHand(0.1)]);
+    release();
+    state.targetScale = 1.2;
+    applyGestureResult([pinchedHand(0.04)]);
+    assert.ok(Math.abs(state.targetScale - 1.2) < 1e-9);
+    applyGestureResult([]);
+  }
+});
+
+test("overlapping pinch fingertips do not produce nonfinite zoom", () => {
+  applyGestureResult([pinchedHand(0)]);
+  assert.equal(state.targetScale, 1);
+  for (let i = 0; i < 80; i++) applyGestureResult([pinchedHand(0.02)]);
+  assert.ok(Math.abs(state.targetScale - 1.7) < 1e-9);
+});
 
 test("cover projection handles portrait crop, mirror and center", () => {
   const point = { x: 0.6, y: 0.25 };

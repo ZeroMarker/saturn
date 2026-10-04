@@ -66,7 +66,7 @@ export async function startCamera() {
     cameraSession.starting = true;
     setCameraButtonState("starting");
     updateTrackingLabel("请求摄像头");
-    const stream = await requestCameraStream();
+    const stream = await requestCameraStream(generation);
     if (generation !== cameraSession.generation) {
       stream.getTracks().forEach((track) => track.stop());
       return;
@@ -126,7 +126,7 @@ function stopCameraInternal() {
   updateTrackingLabel("摄像头已关闭");
 }
 
-async function requestCameraStream() {
+async function requestCameraStream(generation) {
   const constraints = [
     {
       video: {
@@ -162,6 +162,7 @@ async function requestCameraStream() {
     try {
       return await navigator.mediaDevices.getUserMedia(constraint);
     } catch (error) {
+      if (generation !== cameraSession.generation) throw error;
       if (error.name !== "OverconstrainedError") throw error;
       lastError = error;
     }
