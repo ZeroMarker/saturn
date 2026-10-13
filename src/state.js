@@ -19,6 +19,7 @@ export const state = {
   targetScale: DEFAULT_VIEW.scale,
   targetTilt: DEFAULT_VIEW.tilt,
   detected: false,
+  touchActive: false,
   mirroredCamera: true,
   mode: "待机",
   preset: "natural",

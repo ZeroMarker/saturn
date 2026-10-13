@@ -10,6 +10,7 @@ export function bindPointerControls(canvas, updateHud) {
 
   function rebase() {
     pointer.active = points.size > 0;
+    state.touchActive = pointer.active;
     const [a, b] = points.values();
     if (a) {
       pointer.x = pointer.lastX = a.x;
@@ -53,6 +54,11 @@ export function bindPointerControls(canvas, updateHud) {
     if (!points.delete(event.pointerId)) return;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     rebase();
+    // Hand tracking overwrites this on its next frame when the camera is on.
+    if (!points.size) {
+      state.mode = "触控备用";
+      updateHud();
+    }
   };
   canvas.addEventListener("pointerup", endPointer);
   canvas.addEventListener("pointercancel", endPointer);

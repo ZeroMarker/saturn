@@ -97,3 +97,13 @@ test("wheel units are normalized and scrolling outside the canvas does not zoom"
   wheel(canvas, 1, 2);
   assert.equal(state.targetScale, LIMITS.scale[0]);
 });
+
+test("pointer contact marks touch active and restores the fallback mode on release", () => {
+  send("pointerdown", 1, 100, 100);
+  assert.equal(state.touchActive, true);
+  send("pointermove", 1, 120, 100);
+  assert.equal(state.mode, "触控旋转");
+  send("pointerup", 1, 120, 100);
+  assert.equal(state.touchActive, false);
+  assert.equal(state.mode, "触控备用");
+});

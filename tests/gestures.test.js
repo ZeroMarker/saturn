@@ -9,7 +9,7 @@ function resetView(mirrored = true) {
   Object.assign(state, {
     targetRotationY: DEFAULT_VIEW.rotationY, targetRotationX: DEFAULT_VIEW.rotationX,
     targetScale: DEFAULT_VIEW.scale, targetTilt: DEFAULT_VIEW.tilt,
-    mirroredCamera: mirrored, detected: false,
+    mirroredCamera: mirrored, detected: false, touchActive: false,
   });
 }
 
@@ -160,4 +160,16 @@ test("palm rotation targets the nearest turn after touch spins", () => {
   state.targetRotationY = DEFAULT_VIEW.rotationY + Math.PI * 6;
   applyGestureResult([hand(0.5, 0.5)]);
   assert.ok(Math.abs(state.targetRotationY - Math.PI * 6) < Math.PI);
+});
+
+test("hand gestures do not move the model while touch is active", () => {
+  state.touchActive = true;
+  const before = [state.targetRotationY, state.targetRotationX, state.targetScale, state.targetTilt];
+  applyGestureResult([hand(0.45, 0.3), hand(0.55, 0.7)]);
+  assert.deepEqual([state.targetRotationY, state.targetRotationX, state.targetScale, state.targetTilt], before);
+  assert.equal(state.detected, true);
+  state.touchActive = false;
+  state.targetScale = 1.3;
+  applyGestureResult([hand(0.45, 0.5), hand(0.55, 0.5)]);
+  assert.ok(Math.abs(state.targetScale - 1.3) < 1e-9);
 });

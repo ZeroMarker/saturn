@@ -110,6 +110,14 @@ export function applyGestureResult(hands) {
 
   hands.forEach(drawHand);
 
+  // Touch takes priority; gestures rebase their sessions once it ends.
+  if (state.touchActive) {
+    pinchSession = null;
+    twoHandSession = null;
+    updateHud();
+    return;
+  }
+
   const palms = hands.map((hand) => {
     const point = projectVideoPoint(
       midpoint(hand[0], hand[9]), videoElement?.videoWidth, videoElement?.videoHeight,
