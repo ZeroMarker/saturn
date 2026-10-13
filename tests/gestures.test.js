@@ -147,3 +147,17 @@ test("two-hand zoom is unaffected by either hand's pinch", () => {
   applyGestureResult([a, b]);
   assert.equal(state.targetScale, expected);
 });
+
+test("two-hand zoom starts from the current scale and follows hand spread", () => {
+  state.targetScale = 1.4;
+  applyGestureResult([hand(0.45, 0.5), hand(0.55, 0.5)]);
+  assert.ok(Math.abs(state.targetScale - 1.4) < 1e-9);
+  for (let i = 0; i < 80; i++) applyGestureResult([hand(0.42, 0.5), hand(0.58, 0.5)]);
+  assert.ok(state.targetScale > 1.4);
+});
+
+test("palm rotation targets the nearest turn after touch spins", () => {
+  state.targetRotationY = DEFAULT_VIEW.rotationY + Math.PI * 6;
+  applyGestureResult([hand(0.5, 0.5)]);
+  assert.ok(Math.abs(state.targetRotationY - Math.PI * 6) < Math.PI);
+});

@@ -9,9 +9,11 @@ let updateTrackingLabel = null;
 let trackingGeneration = 0;
 let videoElement = null;
 let pinchSession = null;
+let twoHandSession = null;
 
 export function configureGestures(config) {
   pinchSession = null;
+  twoHandSession = null;
   gestureContext = config.gestureContext;
   videoElement = config.video ?? null;
   updateHud = config.updateHud ?? (() => {});
@@ -24,6 +26,7 @@ export function getHandLandmarker() {
 
 export function closeHandLandmarker() {
   pinchSession = null;
+  twoHandSession = null;
   trackingGeneration += 1;
   handLandmarker?.close?.();
   handLandmarker = null;
@@ -99,6 +102,7 @@ export function applyGestureResult(hands) {
 
   if (!hands.length) {
     pinchSession = null;
+    twoHandSession = null;
     state.mode = "待机";
     updateHud();
     return;
@@ -142,8 +146,13 @@ export function applyGestureResult(hands) {
     const [a, b] = palms;
     const heightDelta = THREE.MathUtils.clamp((a.y - b.y) * 1.9, -0.78, 0.78);
     setGestureTarget("targetTilt", DEFAULT_VIEW.tilt + heightDelta);
-    setGestureTarget("targetScale", 0.82 + distance(a, b) * 1.35);
+    // Scale relative to the zoom level when the second hand appeared.
+    const spread = Math.max(distance(a, b), 0.02);
+    if (!twoHandSession) twoHandSession = { distance: spread, scale: state.targetScale };
+    setGestureTarget("targetScale", twoHandSession.scale * spread / twoHandSession.distance);
     state.mode = "双手操控";
+  } else {
+    twoHandSession = null;
   }
 
   updateHud();

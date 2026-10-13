@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { state, DEFAULT_VIEW } from "./state.js";
+import { state, DEFAULT_VIEW, nearestAngle } from "./state.js";
 import { bindPointerControls } from "./pointer.js";
 
 // DOM element references
@@ -18,14 +18,6 @@ export const trackingDot = document.querySelector("#trackingDot");
 export const presetButtons = [...document.querySelectorAll("[data-preset]")];
 export const gestureContext = gestureCanvas.getContext("2d");
 
-let pointer = {
-  active: false,
-  x: 0,
-  y: 0,
-  lastX: 0,
-  lastY: 0,
-};
-
 // Callbacks set by main.js
 let setPresetCallback = null;
 let startCameraCallback = null;
@@ -33,10 +25,6 @@ let startCameraCallback = null;
 export function configureUI(config) {
   setPresetCallback = config.setPreset ?? (() => {});
   startCameraCallback = config.startCamera ?? (() => {});
-}
-
-export function getPointer() {
-  return pointer;
 }
 
 export function updateHud() {
@@ -86,7 +74,7 @@ export function resizeGestureCanvas() {
 }
 
 export function bindPointerFallback() {
-  pointer = bindPointerControls(sceneCanvas, updateHud);
+  bindPointerControls(sceneCanvas, updateHud);
 }
 
 export function bindPresetButtons() {
@@ -109,7 +97,7 @@ export function bindCameraButton() {
 
 export function bindResetButton() {
   resetButton.addEventListener("click", () => {
-    state.targetRotationY = DEFAULT_VIEW.rotationY;
+    state.targetRotationY = nearestAngle(state.targetRotationY, DEFAULT_VIEW.rotationY);
     state.targetRotationX = DEFAULT_VIEW.rotationX;
     state.targetScale = DEFAULT_VIEW.scale;
     state.targetTilt = DEFAULT_VIEW.tilt;

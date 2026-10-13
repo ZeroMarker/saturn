@@ -31,6 +31,8 @@ export function setGestureTarget(key, value, smoothing = 0.28) {
     value = THREE.MathUtils.clamp(value, ...LIMITS.scale);
   } else if (key === "targetTilt") {
     value = THREE.MathUtils.clamp(value, ...LIMITS.tilt);
+  } else if (key === "targetRotationY") {
+    value = nearestAngle(state[key], value);
   }
   state[key] = THREE.MathUtils.lerp(state[key], value, smoothing);
 }
@@ -44,4 +46,11 @@ export function midpoint(a, b) {
 
 export function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+// Equivalent of `angle` closest to `current`, so absolute targets never spin
+// the model through extra turns accumulated by touch dragging.
+export function nearestAngle(current, angle) {
+  const turn = Math.PI * 2;
+  return angle + Math.round((current - angle) / turn) * turn;
 }
