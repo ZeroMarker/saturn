@@ -14,6 +14,7 @@ import {
   applyGestureResult,
   closeHandLandmarker,
   clearGestureCanvas,
+  resetGestureSessions,
   getHandLandmarker,
 } from "./gestures.js";
 import {
@@ -75,6 +76,7 @@ configureUI({
     setPreset(preset);
   },
   startCamera,
+  onReset: resetGestureSessions,
 });
 
 setIsCameraOn(isCameraOn);

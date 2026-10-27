@@ -24,9 +24,15 @@ export function getHandLandmarker() {
   return handLandmarker;
 }
 
-export function closeHandLandmarker() {
+// Zoom sessions hold a baseline scale; drop them whenever the view is reset
+// externally so the next frame doesn't pull the model back to the old zoom.
+export function resetGestureSessions() {
   pinchSession = null;
   twoHandSession = null;
+}
+
+export function closeHandLandmarker() {
+  resetGestureSessions();
   trackingGeneration += 1;
   handLandmarker?.close?.();
   handLandmarker = null;
@@ -101,9 +107,8 @@ export function applyGestureResult(hands) {
   updateTrackingLabel(hands.length ? `${hands.length} 只手已追踪` : "寻找手势");
 
   if (!hands.length) {
-    pinchSession = null;
-    twoHandSession = null;
-    state.mode = "待机";
+    resetGestureSessions();
+    state.mode = "手势待机";
     updateHud();
     return;
   }
@@ -112,8 +117,7 @@ export function applyGestureResult(hands) {
 
   // Touch takes priority; gestures rebase their sessions once it ends.
   if (state.touchActive) {
-    pinchSession = null;
-    twoHandSession = null;
+    resetGestureSessions();
     updateHud();
     return;
   }

@@ -21,10 +21,12 @@ export const gestureContext = gestureCanvas.getContext("2d");
 // Callbacks set by main.js
 let setPresetCallback = null;
 let startCameraCallback = null;
+let resetCallback = null;
 
 export function configureUI(config) {
   setPresetCallback = config.setPreset ?? (() => {});
   startCameraCallback = config.startCamera ?? (() => {});
+  resetCallback = config.onReset ?? (() => {});
 }
 
 export function updateHud() {
@@ -101,6 +103,7 @@ export function bindResetButton() {
     state.targetRotationX = DEFAULT_VIEW.rotationX;
     state.targetScale = DEFAULT_VIEW.scale;
     state.targetTilt = DEFAULT_VIEW.tilt;
+    resetCallback();
     state.mode = isCameraOn() ? "手势待机" : "触控备用";
     updateHud();
   });

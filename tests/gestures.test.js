@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, afterEach, test } from "node:test";
-import { configureGestures, applyGestureResult, closeHandLandmarker } from "../src/gestures.js";
+import { configureGestures, applyGestureResult, closeHandLandmarker, resetGestureSessions } from "../src/gestures.js";
 import { state, DEFAULT_VIEW } from "../src/state.js";
 import { projectVideoPoint } from "../src/video-layout.js";
 
@@ -172,4 +172,15 @@ test("hand gestures do not move the model while touch is active", () => {
   state.targetScale = 1.3;
   applyGestureResult([hand(0.45, 0.5), hand(0.55, 0.5)]);
   assert.ok(Math.abs(state.targetScale - 1.3) < 1e-9);
+});
+
+test("resetting gesture sessions keeps a held pinch from restoring the old zoom", () => {
+  applyGestureResult([pinchedHand(0.05)]);
+  for (let i = 0; i < 30; i += 1) applyGestureResult([pinchedHand(0.07)]);
+  assert.ok(state.targetScale > 1.2);
+
+  state.targetScale = DEFAULT_VIEW.scale;
+  resetGestureSessions();
+  applyGestureResult([pinchedHand(0.07)]);
+  assert.equal(state.targetScale, DEFAULT_VIEW.scale);
 });
